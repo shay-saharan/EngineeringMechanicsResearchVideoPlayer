@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pulley System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #ffffff;
+      color: #111111;
+      font-family: 'Libre Baskerville', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 8px 64px;
+      min-height: 100vh;
+    }
+
+    .problem-text {
+      max-width: 1200px;
+      width: 100%;
+      font-size: 18pt;
+      line-height: 1.55;
+      margin-bottom: 36px;
+      color: #111;
+    }
+
+    .problem-text-intro {
+      font-family: 'Libertad', 'Libre Baskerville', serif;
+      color: #0080BF;
+      font-weight: 700;
+    }
+
+    .math-emphasis {
+      font-weight: 900;
+      font-style: italic;
+      -webkit-text-stroke: 0.25px currentColor;
+    }
+
+    .math-emphasis .num {
+      font-style: normal;
+    }
+
+    .player-wrap {
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .counter-label {
+      font-family: 'Libertad', 'Libre Baskerville', serif;
+      font-size: 10pt;
+      color: #333;
+      background: #e7e7e7;
+      border: 1px solid #d2d2d2;
+      border-radius: 999px;
+      padding: 4px 10px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+ 
+
+    .video-area {
+      position: relative;
+      background: #000;
+      aspect-ratio: 16 / 5.5;
+      width: 100%;
+      cursor: default;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    .upload-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: #f5f5f5;
+    }
+
+    .upload-text { font-size: 13pt; color: #555; }
+
+    .upload-btn {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 12pt;
+      padding:12px 24px;
+      border: 1.5px solid #333;
+      background: #fff;
+      color: #111;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .upload-btn:hover { background: #f0f0f0; }
+    #file-input { display: none; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .ctrl-btn {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 12pt;
+      padding: 12px 22px;
+      border: 1.5px solid #333;
+      background: #fff;
+      color: #111;
+      cursor: pointer;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    #btn-play {
+      width: 120px;
+      justify-content: center;
+    }
+
+    .ctrl-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .ctrl-btn:hover { background: #f0f0f0; }
+
+    .time-display {
+      font-size: 11pt;
+      color: #555;
+      width: 100px;
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+
+  <p class="problem-text">
+    <span class="problem-text-intro">A two-mass pulley system.</span> The two masses have frictionless bases and round frictionless pulleys. The inextensible cord connecting them is always taut. Given that <span class="math-emphasis">F&nbsp;=&nbsp;<span class="num">65</span>&nbsp;N</span> and <span class="math-emphasis">m<sub>A</sub>&nbsp;=&nbsp;m<sub>B</sub>&nbsp;=&nbsp;<span class="num">40</span>&nbsp;kg</span>, find the acceleration of the two blocks:
+  </p>
+
+  <div class="player-wrap">
+
+    <div class="video-area" id="video-area">
+      <video id="vid" preload="metadata"></video>
+      <div class="upload-overlay" id="upload-overlay">
+        <span class="upload-text">Drop an MP4 here, or</span>
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Choose File</button>
+        <input type="file" id="file-input" accept="video/mp4,video/*">
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn" id="btn-play">
+        <svg id="icon-play" width="12" height="13" viewBox="0 0 12 13"><path d="M2 1.5l9 5-9 5v-10z" fill="#111"/></svg>
+        <svg id="icon-pause" width="12" height="13" viewBox="0 0 12 13" style="display:none"><rect x="1" y="1.5" width="3.5" height="10" fill="#111" rx="0.5"/><rect x="7.5" y="1.5" width="3.5" height="10" fill="#111" rx="0.5"/></svg>
+        <span id="play-label">Play</span>
+      </button>
+
+      <button class="ctrl-btn" id="btn-replay">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 2V0.5L4.5 3 7 5.5V4a4.5 4.5 0 11-4.5 4.5H1A6 6 0 107 2z" fill="#111"/>
+        </svg>
+        Reset to First Frame
+      </button>
+
+      <span class="counter-label">Plays: <span id="counter">0</span></span>
+      <span class="time-display" id="time-display">0:00 / 0:00</span>
+    </div>
+
+  </div>
+
+  <script>
+    const vid           = document.getElementById('vid');
+    const fileInput     = document.getElementById('file-input');
+    const uploadOverlay = document.getElementById('upload-overlay');
+    const btnPlay       = document.getElementById('btn-play');
+    const iconPlay      = document.getElementById('icon-play');
+    const iconPause     = document.getElementById('icon-pause');
+    const playLabel     = document.getElementById('play-label');
+    const btnReplay     = document.getElementById('btn-replay');
+    const timeDisplay   = document.getElementById('time-display');
+    const counter       = document.getElementById('counter');
+    const videoArea     = document.getElementById('video-area');
+
+    let hasFile = false;
+    let playCount = 0;
+
+    function fmt(s) {
+      if (!s || isNaN(s)) return '0:00';
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60).toString().padStart(2, '0');
+      return `${m}:${sec}`;
+    }
+
+    function loadFile(file) {
+      if (!file || !file.type.startsWith('video/')) return;
+      vid.src = URL.createObjectURL(file);
+      uploadOverlay.style.display = 'none';
+      hasFile = true;
+      playCount = 0;
+      counter.textContent = '0';
+      setPlayState(false);
+    }
+
+    function loadDefaultVideo(srcPath) {
+      vid.src = srcPath;
+      uploadOverlay.style.display = 'none';
+      hasFile = true;
+      playCount = 0;
+      counter.textContent = '0';
+      setPlayState(false);
+    }
+
+    fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+    videoArea.addEventListener('dragover', e => e.preventDefault());
+    videoArea.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+
+    function togglePlay() { vid.paused ? vid.play() : vid.pause(); }
+
+    function setPlayState(playing) {
+      iconPlay.style.display  = playing ? 'none' : '';
+      iconPause.style.display = playing ? ''     : 'none';
+      playLabel.textContent   = playing ? 'Pause' : 'Play';
+      btnReplay.disabled      = playing || !hasFile;
+    }
+
+    vid.addEventListener('play',  () => { setPlayState(true); playCount++; counter.textContent = playCount; });
+    vid.addEventListener('pause', () => setPlayState(false));
+    vid.addEventListener('ended', () => setPlayState(false));
+
+    btnPlay.addEventListener('click', () => { if (hasFile) togglePlay(); });
+    btnReplay.addEventListener('click', () => {
+      if (!hasFile) return;
+      vid.pause();
+      vid.currentTime = 0;
+      setPlayState(false);
+      timeDisplay.textContent = '0:00 / ' + fmt(vid.duration);
+    });
+
+    vid.addEventListener('timeupdate', () => {
+      if (!vid.duration) return;
+      timeDisplay.textContent  = fmt(vid.currentTime) + ' / ' + fmt(vid.duration);
+    });
+
+    vid.addEventListener('loadedmetadata', () => {
+      timeDisplay.textContent = '0:00 / ' + fmt(vid.duration);
+    });
+
+    document.addEventListener('keydown', e => {
+      if (!hasFile) return;
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    });
+
+    loadDefaultVideo('ResearchVideo.mp4');
+  </script>
+</body>
+</html>
