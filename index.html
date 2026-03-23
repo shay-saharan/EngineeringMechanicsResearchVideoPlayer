@@ -96,6 +96,23 @@
 
     .upload-text { font-size: 13pt; color: #555; }
 
+    .init-overlay {
+      position: absolute;
+      inset: 0;
+      background: #d6d6d6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .init-overlay-text {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 13pt;
+      color: #444;
+      letter-spacing: 0.01em;
+    }
+
     .upload-btn {
       font-family: 'Libre Baskerville', serif;
       font-size: 12pt;
@@ -163,6 +180,9 @@
 
     <div class="video-area" id="video-area">
       <video id="vid" preload="metadata"></video>
+      <div class="init-overlay" id="init-overlay" style="display:none">
+        <span class="init-overlay-text">Press Play to Initialize the Animation</span>
+      </div>
       <div class="upload-overlay" id="upload-overlay">
         <span class="upload-text">Drop an MP4 here, or</span>
         <button class="upload-btn" onclick="document.getElementById('file-input').click()">Choose File</button>
@@ -175,13 +195,6 @@
         <svg id="icon-play" width="12" height="13" viewBox="0 0 12 13"><path d="M2 1.5l9 5-9 5v-10z" fill="#111"/></svg>
         <svg id="icon-pause" width="12" height="13" viewBox="0 0 12 13" style="display:none"><rect x="1" y="1.5" width="3.5" height="10" fill="#111" rx="0.5"/><rect x="7.5" y="1.5" width="3.5" height="10" fill="#111" rx="0.5"/></svg>
         <span id="play-label">Play</span>
-      </button>
-
-      <button class="ctrl-btn" id="btn-replay">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 2V0.5L4.5 3 7 5.5V4a4.5 4.5 0 11-4.5 4.5H1A6 6 0 107 2z" fill="#111"/>
-        </svg>
-        Reset to First Frame
       </button>
 
       <span class="counter-label">Plays: <span id="counter">0</span></span>
@@ -198,10 +211,10 @@
     const iconPlay      = document.getElementById('icon-play');
     const iconPause     = document.getElementById('icon-pause');
     const playLabel     = document.getElementById('play-label');
-    const btnReplay     = document.getElementById('btn-replay');
     const timeDisplay   = document.getElementById('time-display');
     const counter       = document.getElementById('counter');
     const videoArea     = document.getElementById('video-area');
+    const initOverlay   = document.getElementById('init-overlay');
 
     let hasFile = false;
     let playCount = 0;
@@ -217,6 +230,7 @@
       if (!file || !file.type.startsWith('video/')) return;
       vid.src = URL.createObjectURL(file);
       uploadOverlay.style.display = 'none';
+      initOverlay.style.display = '';
       hasFile = true;
       playCount = 0;
       counter.textContent = '0';
@@ -226,6 +240,7 @@
     function loadDefaultVideo(srcPath) {
       vid.src = srcPath;
       uploadOverlay.style.display = 'none';
+      initOverlay.style.display = '';
       hasFile = true;
       playCount = 0;
       counter.textContent = '0';
@@ -236,26 +251,36 @@
     videoArea.addEventListener('dragover', e => e.preventDefault());
     videoArea.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
 
-    function togglePlay() { vid.paused ? vid.play() : vid.pause(); }
-
-    function setPlayState(playing) {
-      iconPlay.style.display  = playing ? 'none' : '';
-      iconPause.style.display = playing ? ''     : 'none';
-      playLabel.textContent   = playing ? 'Pause' : 'Play';
-      btnReplay.disabled      = playing || !hasFile;
+    function startPlayback() {
+      if (!hasFile || !vid.paused) return;
+      const atEnd = vid.duration && vid.currentTime >= vid.duration - 0.05;
+      if (playCount >= 1 && atEnd) { vid.currentTime = 0; }
+      vid.play();
     }
 
-    vid.addEventListener('play',  () => { setPlayState(true); playCount++; counter.textContent = playCount; });
+    function setPlayState(playing) {
+      iconPlay.style.display  = '';
+      iconPause.style.display = 'none';
+
+      if (playing) {
+        playLabel.textContent = 'Playing...';
+        btnPlay.disabled = true;
+        btnPlay.title = 'Playback cannot be paused';
+        return;
+      }
+
+      btnPlay.disabled = !hasFile;
+      btnPlay.title = '';
+      const atEnd = vid.duration && vid.currentTime >= vid.duration - 0.05;
+      playLabel.textContent   = playCount >= 1 && atEnd ? 'Replay' : 'Play';
+    }
+
+    vid.addEventListener('play',  () => { setPlayState(true); playCount++; counter.textContent = playCount; initOverlay.style.display = 'none'; });
     vid.addEventListener('pause', () => setPlayState(false));
     vid.addEventListener('ended', () => setPlayState(false));
 
-    btnPlay.addEventListener('click', () => { if (hasFile) togglePlay(); });
-    btnReplay.addEventListener('click', () => {
-      if (!hasFile) return;
-      vid.pause();
-      vid.currentTime = 0;
-      setPlayState(false);
-      timeDisplay.textContent = '0:00 / ' + fmt(vid.duration);
+    btnPlay.addEventListener('click', () => {
+      startPlayback();
     });
 
     vid.addEventListener('timeupdate', () => {
@@ -269,7 +294,7 @@
 
     document.addEventListener('keydown', e => {
       if (!hasFile) return;
-      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      if (e.code === 'Space') { e.preventDefault(); startPlayback(); }
     });
 
     loadDefaultVideo('ResearchVideo.mp4');
