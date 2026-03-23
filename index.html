@@ -83,6 +83,14 @@
       object-fit: contain;
     }
 
+    .stimulus-image {
+      width: 100%;
+      height: 100%;
+      display: none;
+      object-fit: contain;
+      background: #d6d6d6;
+    }
+
     .upload-overlay {
       position: absolute;
       inset: 0;
@@ -168,6 +176,26 @@
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
     }
+
+    .mode-toggle-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #d4d4d4;
+      background: #f7f7f7;
+      color: #666;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0.72;
+      transition: opacity 120ms ease, background-color 120ms ease;
+    }
+
+    .mode-toggle-btn:hover {
+      opacity: 1;
+      background: #efefef;
+    }
   </style>
 </head>
 <body>
@@ -180,6 +208,7 @@
 
     <div class="video-area" id="video-area">
       <video id="vid" preload="metadata"></video>
+      <img id="stimulus-image" class="stimulus-image" src="Static.png" alt="Static stimulus image">
       <div class="init-overlay" id="init-overlay" style="display:none">
         <span class="init-overlay-text">Press Play to Initialize the Animation</span>
       </div>
@@ -197,27 +226,36 @@
         <span id="play-label">Play</span>
       </button>
 
-      <span class="counter-label">Plays: <span id="counter">0</span></span>
+      <span class="counter-label" id="counter-label">Plays: <span id="counter">0</span></span>
       <span class="time-display" id="time-display">0:00 / 0:00</span>
+      <button class="mode-toggle-btn" id="btn-stimulus-toggle" title="Switch to static image stimulus" aria-label="Switch stimulus mode">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M2 5h9.2L9.4 3.2 10.5 2l3.5 3.5L10.5 9 9.4 7.8 11.2 6H2V5zm12 6H4.8l1.8 1.8L5.5 14 2 10.5 5.5 7l1.1 1.2L4.8 10H14v1z" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
 
   </div>
 
   <script>
     const vid           = document.getElementById('vid');
+    const stimulusImage = document.getElementById('stimulus-image');
     const fileInput     = document.getElementById('file-input');
     const uploadOverlay = document.getElementById('upload-overlay');
     const btnPlay       = document.getElementById('btn-play');
+    const btnStimulusToggle = document.getElementById('btn-stimulus-toggle');
     const iconPlay      = document.getElementById('icon-play');
     const iconPause     = document.getElementById('icon-pause');
     const playLabel     = document.getElementById('play-label');
     const timeDisplay   = document.getElementById('time-display');
+    const counterLabel  = document.getElementById('counter-label');
     const counter       = document.getElementById('counter');
     const videoArea     = document.getElementById('video-area');
     const initOverlay   = document.getElementById('init-overlay');
 
     let hasFile = false;
     let playCount = 0;
+    let stimulusMode = 'video';
 
     function fmt(s) {
       if (!s || isNaN(s)) return '0:00';
@@ -230,20 +268,20 @@
       if (!file || !file.type.startsWith('video/')) return;
       vid.src = URL.createObjectURL(file);
       uploadOverlay.style.display = 'none';
-      initOverlay.style.display = '';
       hasFile = true;
       playCount = 0;
       counter.textContent = '0';
+      setStimulusMode('video');
       setPlayState(false);
     }
 
     function loadDefaultVideo(srcPath) {
       vid.src = srcPath;
       uploadOverlay.style.display = 'none';
-      initOverlay.style.display = '';
       hasFile = true;
       playCount = 0;
       counter.textContent = '0';
+      setStimulusMode('video');
       setPlayState(false);
     }
 
@@ -251,8 +289,47 @@
     videoArea.addEventListener('dragover', e => e.preventDefault());
     videoArea.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
 
+    function setStimulusMode(mode) {
+      stimulusMode = mode;
+      const imageMode = mode === 'image';
+
+      if (imageMode) {
+        if (!vid.paused) vid.pause();
+        vid.style.display = 'none';
+        stimulusImage.style.display = 'block';
+        initOverlay.style.display = 'none';
+        uploadOverlay.style.display = 'none';
+        btnPlay.style.visibility = 'hidden';
+        btnPlay.style.pointerEvents = 'none';
+        counterLabel.style.visibility = 'hidden';
+        timeDisplay.style.visibility = 'hidden';
+        btnPlay.disabled = true;
+        btnPlay.title = '';
+        btnStimulusToggle.title = 'Switch to video stimulus';
+        return;
+      }
+
+      stimulusImage.style.display = 'none';
+      vid.style.display = 'block';
+      uploadOverlay.style.display = hasFile ? 'none' : '';
+      btnPlay.style.visibility = 'visible';
+      btnPlay.style.pointerEvents = '';
+      counterLabel.style.visibility = 'visible';
+      timeDisplay.style.visibility = 'visible';
+
+      const atStart = vid.currentTime <= 0.05;
+      initOverlay.style.display = hasFile && playCount === 0 && atStart ? '' : 'none';
+      btnStimulusToggle.title = 'Switch to static image stimulus';
+
+      if (!vid.duration || isNaN(vid.duration)) {
+        timeDisplay.textContent = '0:00 / 0:00';
+      } else {
+        timeDisplay.textContent = fmt(vid.currentTime) + ' / ' + fmt(vid.duration);
+      }
+    }
+
     function startPlayback() {
-      if (!hasFile || !vid.paused) return;
+      if (!hasFile || !vid.paused || stimulusMode !== 'video') return;
       const atEnd = vid.duration && vid.currentTime >= vid.duration - 0.05;
       if (playCount >= 1 && atEnd) { vid.currentTime = 0; }
       vid.play();
@@ -261,6 +338,12 @@
     function setPlayState(playing) {
       iconPlay.style.display  = '';
       iconPause.style.display = 'none';
+
+      if (stimulusMode === 'image') {
+        btnPlay.disabled = true;
+        btnPlay.title = '';
+        return;
+      }
 
       if (playing) {
         playLabel.textContent = 'Playing...';
@@ -283,12 +366,20 @@
       startPlayback();
     });
 
+    btnStimulusToggle.addEventListener('click', () => {
+      const nextMode = stimulusMode === 'video' ? 'image' : 'video';
+      setStimulusMode(nextMode);
+      setPlayState(!vid.paused);
+    });
+
     vid.addEventListener('timeupdate', () => {
+      if (stimulusMode !== 'video') return;
       if (!vid.duration) return;
       timeDisplay.textContent  = fmt(vid.currentTime) + ' / ' + fmt(vid.duration);
     });
 
     vid.addEventListener('loadedmetadata', () => {
+      if (stimulusMode !== 'video') return;
       timeDisplay.textContent = '0:00 / ' + fmt(vid.duration);
     });
 
