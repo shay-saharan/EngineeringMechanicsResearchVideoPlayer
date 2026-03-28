@@ -17,8 +17,65 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 48px 8px 64px;
+      padding: 88px 8px 64px;
       min-height: 100vh;
+    }
+
+    body.start-screen-active {
+      overflow: hidden;
+    }
+
+    .start-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .start-screen[hidden] {
+      display: none;
+    }
+
+    .start-screen-options {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .start-screen-btn {
+      width: 62px;
+      height: 50px;
+      border: 1px solid #8e8e8e;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+      color: #111111;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+    }
+
+    .start-screen-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+    }
+
+    .start-screen-btn:focus-visible {
+      outline: 2px solid #111111;
+      outline-offset: 3px;
+    }
+
+    .start-screen-btn-number {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
     }
 
     .problem-text {
@@ -204,6 +261,19 @@
 </head>
 <body>
 
+  <div class="start-screen" id="start-screen">
+    <div class="start-screen-options" aria-label="Choose starting version" role="group">
+      <button class="start-screen-btn" id="start-static" type="button" aria-label="Start with version 1" title="Start with version 1">
+        <svg width="14" height="15" viewBox="0 0 12 13" aria-hidden="true"><path d="M2 1.5l9 5-9 5v-10z" fill="currentColor"/></svg>
+        <span class="start-screen-btn-number">1</span>
+      </button>
+      <button class="start-screen-btn" id="start-animated" type="button" aria-label="Start with version 2" title="Start with version 2">
+        <svg width="14" height="15" viewBox="0 0 12 13" aria-hidden="true"><path d="M2 1.5l9 5-9 5v-10z" fill="currentColor"/></svg>
+        <span class="start-screen-btn-number">2</span>
+      </button>
+    </div>
+  </div>
+
   <p class="problem-text">
     <span class="problem-text-intro">A two-mass pulley system.</span> Two blocks, A and B, are connected by an inextensible cord through a system of frictionless pulleys. Both blocks have frictionless bases. Given that <span class="math-emphasis">F&nbsp;=&nbsp;<span class="num">100</span>&nbsp;<span class="unit">N</span></span> and <span class="math-emphasis">m<sub>A</sub>&nbsp;=&nbsp;m<sub>B</sub>&nbsp;=&nbsp;<span class="num">40</span>&nbsp;<span class="unit">kg</span></span>, find the acceleration of each block. Neglect the mass of the pulleys and cord.
   </p>
@@ -256,6 +326,9 @@
     const counter       = document.getElementById('counter');
     const videoArea     = document.getElementById('video-area');
     const initOverlay   = document.getElementById('init-overlay');
+    const startScreen   = document.getElementById('start-screen');
+    const startStatic   = document.getElementById('start-static');
+    const startAnimated = document.getElementById('start-animated');
 
     let hasFile = false;
     let playCount = 0;
@@ -332,6 +405,13 @@
       }
     }
 
+    function enterExperience(startMode) {
+      startScreen.hidden = true;
+      document.body.classList.remove('start-screen-active');
+      setStimulusMode(startMode);
+      setPlayState(!vid.paused);
+    }
+
     function startPlayback() {
       if (!hasFile || !vid.paused || stimulusMode !== 'video') return;
       const atEnd = vid.duration && vid.currentTime >= vid.duration - 0.05;
@@ -376,6 +456,14 @@
       setPlayState(!vid.paused);
     });
 
+    startStatic.addEventListener('click', () => {
+      enterExperience('image');
+    });
+
+    startAnimated.addEventListener('click', () => {
+      enterExperience('video');
+    });
+
     vid.addEventListener('timeupdate', () => {
       if (stimulusMode !== 'video') return;
       if (!vid.duration) return;
@@ -393,6 +481,7 @@
     });
 
     loadDefaultVideo('ResearchVideo.mp4');
+    document.body.classList.add('start-screen-active');
   </script>
 </body>
 </html>
